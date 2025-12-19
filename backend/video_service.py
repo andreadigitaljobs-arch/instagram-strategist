@@ -16,11 +16,13 @@ def download_video(url: str) -> str:
     Downloads a video from a URL (Instagram, TikTok, YouTube) using yt-dlp.
     Returns the local file path.
     """
-    # Create temp dir if not exists
-    os.makedirs("temp_videos", exist_ok=True)
+    # Create temp dir if not exists (absolute path for production)
+    base_dir = os.path.dirname(os.path.abspath(__file__))
+    temp_dir = os.path.join(base_dir, "temp_videos")
+    os.makedirs(temp_dir, exist_ok=True)
     
     timestamp = int(time.time())
-    output_template = f"temp_videos/video_{timestamp}.%(ext)s"
+    output_template = os.path.join(temp_dir, f"video_{timestamp}.%(ext)s")
     
     ydl_opts = {
         'outtmpl': output_template,
