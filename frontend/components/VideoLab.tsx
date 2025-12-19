@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { Diagnosis } from "@/types";
+import { analyzeVideo } from "@/lib/api";
 
 export default function VideoLab() {
     const [url, setUrl] = useState("");
@@ -41,18 +42,7 @@ export default function VideoLab() {
         simulateProgress();
 
         try {
-            const res = await fetch("http://localhost:8000/api/analyze_video", {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ url }),
-            });
-
-            if (!res.ok) {
-                const errorData = await res.json();
-                throw new Error(errorData.detail || "Error en el análisis. Verifica el link.");
-            }
-
-            const data = await res.json();
+            const data = await analyzeVideo(url);
             setDiagnosis(data);
             setProgress(100);
         } catch (e: any) {

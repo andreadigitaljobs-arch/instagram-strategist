@@ -50,3 +50,17 @@ export async function sendChatMessage(
     return res.json();
 }
 
+export async function analyzeVideo(url: string): Promise<Diagnosis> {
+    const res = await fetch(`${API_BASE_URL}/analyze_video`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ url }),
+    });
+
+    if (!res.ok) {
+        const errorData = await res.json();
+        throw new Error(errorData.detail || "Error en el análisis. Verifica el link.");
+    }
+
+    return res.json();
+}
