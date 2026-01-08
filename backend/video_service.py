@@ -54,8 +54,39 @@ def download_video(url: str) -> str:
             "X-RapidAPI-Host": DOWNLOADER_HOST
         }
         
-        # Call API
-        response = requests.get(api_url, headers=headers, params=querystring)
+        # Fallback Strategy
+        endpoints_to_try = [
+            "/ig/info/",
+            "/ig/media_info/",
+            "/ig/p_info",
+            "/ig/reel/"
+        ]
+        
+        response = None
+        last_error = None
+        
+        for endpoint in endpoints_to_try:
+            try:
+                current_url = f"https://{DOWNLOADER_HOST}{endpoint}"
+                print(f"Trying endpoint: {endpoint}")
+                resp = requests.get(current_url, headers=headers, params=querystring)
+                
+                if resp.status_code == 200:
+                    response = resp
+                    break
+                elif resp.status_code == 429:
+                    # 429 means endpoint exists but we are rate limited. 
+                    # We should probably stop and warn user, or try next if maybe one has different quota (unlikely)
+                    # But 429 is better than 404. Let's capture it.
+                    response = resp
+                    break
+                else:
+                    last_error = f"{endpoint}: {resp.status_code}"
+            except Exception as e:
+                print(f"Error trying {endpoint}: {e}")
+                
+        if not response:
+             raise ValueError(f"Fallo en todos los endpoints intentados. Último error: {last_error}")
         
         if response.status_code == 403:
              raise ValueError("⚠️ Falta Suscripción: Debes suscribirte GRATIS a 'Instagram Scraper 2022' en RapidAPI.")
