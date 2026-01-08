@@ -24,8 +24,8 @@ genai.configure(api_key=api_key)
     output_path = os.path.join(temp_dir, f"video_{timestamp}.mp4")
 
     # 2. Call RapidAPI to get Download URL
-    # Using 'Instagram Video Downloader' (Freemium)
-    DOWNLOADER_HOST = "instagram-video-downloader-freemium.p.rapidapi.com"
+    # Using 'Instagram Downloader' by Kk Creation (9.9 Rating)
+    DOWNLOADER_HOST = "instagram-downloader38.p.rapidapi.com"
     API_KEY = os.getenv("RAPIDAPI_KEY") 
     
     if not API_KEY:
@@ -34,9 +34,10 @@ genai.configure(api_key=api_key)
     print(f"Resolving video URL via RapidAPI ({DOWNLOADER_HOST})...")
     
     try:
-        # This API uses /instagram endpoint with 'link' parameter
-        api_url = f"https://{DOWNLOADER_HOST}/instagram"
-        querystring = {"link":url}
+        # This API uses /url endpoint with 'url' query param
+        # Documentation says: GET /url?url=...
+        api_url = f"https://{DOWNLOADER_HOST}/url"
+        querystring = {"url":url}
         headers = {
             "X-RapidAPI-Key": API_KEY,
             "X-RapidAPI-Host": DOWNLOADER_HOST
@@ -46,7 +47,7 @@ genai.configure(api_key=api_key)
         response = requests.get(api_url, headers=headers, params=querystring)
         
         if response.status_code == 403:
-             raise ValueError("⚠️ Falta Suscripción: Debes suscribirte GRATIS a 'Instagram Video Downloader' en RapidAPI para usar esta función.")
+             raise ValueError("⚠️ Falta Suscripción: Debes suscribirte GRATIS a 'Instagram Downloader' (Kk Creation) en RapidAPI.")
         
         if response.status_code == 429:
              raise ValueError("⚠️ Límite Excedido: Se acabaron los créditos de descarga en RapidAPI.")
