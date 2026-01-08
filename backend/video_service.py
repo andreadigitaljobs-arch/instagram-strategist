@@ -55,21 +55,23 @@ def download_video(url: str) -> str:
         }
         
         # Fallback Strategy
+        # Test results show: /ig/reel with 'url' param -> 403/429 (EXISTS!)
+        # /ig/reel with 'shortcode' param -> 429 (EXISTS!)
         endpoints_to_try = [
-            "/ig/info/",
-            "/ig/media_info/",
-            "/ig/p_info",
-            "/ig/reel/"
+            ("/ig/reel/", {"url": url}),          # Strongest match from tests
+            ("/ig/reel/", {"shortcode": shortcode}),
+            ("/reel", {"url": url}),
+            ("/ig/info/", {"shortcode": shortcode})
         ]
         
         response = None
         last_error = None
         
-        for endpoint in endpoints_to_try:
+        for endpoint, params in endpoints_to_try:
             try:
                 current_url = f"https://{DOWNLOADER_HOST}{endpoint}"
-                print(f"Trying endpoint: {endpoint}")
-                resp = requests.get(current_url, headers=headers, params=querystring)
+                print(f"Trying endpoint: {endpoint} with params {list(params.keys())}")
+                resp = requests.get(current_url, headers=headers, params=params)
                 
                 if resp.status_code == 200:
                     response = resp
