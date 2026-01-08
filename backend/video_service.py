@@ -24,7 +24,8 @@ genai.configure(api_key=api_key)
     output_path = os.path.join(temp_dir, f"video_{timestamp}.mp4")
 
     # 2. Call RapidAPI to get Download URL
-    DOWNLOADER_HOST = "instagram-downloader-download-instagram-videos-stories.p.rapidapi.com"
+    # Using 'Instagram Video Downloader' (Freemium)
+    DOWNLOADER_HOST = "instagram-video-downloader-freemium.p.rapidapi.com"
     API_KEY = os.getenv("RAPIDAPI_KEY") 
     
     if not API_KEY:
@@ -33,8 +34,9 @@ genai.configure(api_key=api_key)
     print(f"Resolving video URL via RapidAPI ({DOWNLOADER_HOST})...")
     
     try:
-        api_url = f"https://{DOWNLOADER_HOST}/index"
-        querystring = {"url":url}
+        # This API uses /instagram endpoint with 'link' parameter
+        api_url = f"https://{DOWNLOADER_HOST}/instagram"
+        querystring = {"link":url}
         headers = {
             "X-RapidAPI-Key": API_KEY,
             "X-RapidAPI-Host": DOWNLOADER_HOST
@@ -44,7 +46,7 @@ genai.configure(api_key=api_key)
         response = requests.get(api_url, headers=headers, params=querystring)
         
         if response.status_code == 403:
-             raise ValueError("⚠️ Falta Suscripción: Debes suscribirte GRATIS a 'Instagram Video & Image Downloader' en RapidAPI para usar esta función.")
+             raise ValueError("⚠️ Falta Suscripción: Debes suscribirte GRATIS a 'Instagram Video Downloader' en RapidAPI para usar esta función.")
         
         if response.status_code == 429:
              raise ValueError("⚠️ Límite Excedido: Se acabaron los créditos de descarga en RapidAPI.")
@@ -54,24 +56,27 @@ genai.configure(api_key=api_key)
 
         data = response.json()
         
-        # Extract MP4 URL (Structure varies, usually 'media' or 'video' or 'download_url')
-        # Based on typical scraper logic for this API:
+        # Extract MP4 URL for 'Instagram Video Downloader'
+        # Structure is often list-based or has 'data' field
         download_url = None
         
-        # Check standard fields
-        if "media" in data and isinstance(data["media"], str):
-             download_url = data["media"]
+        # Common patterns for this specific API family
+        if isinstance(data, list) and len(data) > 0 and "video" in data[0]:
+             download_url = data[0]["video"] # Sometimes returns list of objects
+        elif "data" in data and isinstance(data["data"], list):
+             for item in data["data"]:
+                 if item.get("type") == "video":
+                     download_url = item.get("url")
+                     break
+                 if "video" in item: # Direct video url field
+                     download_url = item["video"]
+                     break
         elif "video" in data:
              download_url = data["video"]
-        elif "download_url" in data:
-             download_url = data["download_url"]
-        # Some return a list
-        elif "media" in data and isinstance(data["media"], list) and len(data["media"]) > 0:
-             download_url = data["media"][0]
              
         if not download_url:
             # Fallback inspection
-            print(f"DEBUG: API Data keys: {data.keys()}")
+            print(f"DEBUG: API Data keys: {data.keys() if isinstance(data, dict) else 'List'}")
             raise ValueError("No se encontró el link de descarga en la respuesta de la API.")
             
         print(f"Video URL resolved: {download_url[:50]}...")
