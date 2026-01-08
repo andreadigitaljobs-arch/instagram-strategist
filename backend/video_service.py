@@ -25,8 +25,8 @@ def download_video(url: str) -> str:
     output_path = os.path.join(temp_dir, f"video_{timestamp}.mp4")
 
     # 2. Call RapidAPI to get Download URL
-    # Using 'Instagram Scraper 2022' (by 'illusion' - Host has a '1' at the end!)
-    DOWNLOADER_HOST = "instagram-scraper-20221.p.rapidapi.com"
+    # Using 'Instagram Scraper 2022' (by 'arraybobo' - Host ends in 4!)
+    DOWNLOADER_HOST = "instagram-scraper-20224.p.rapidapi.com"
     API_KEY = os.getenv("RAPIDAPI_KEY") 
     
     if not API_KEY:
