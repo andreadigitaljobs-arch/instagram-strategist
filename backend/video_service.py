@@ -11,34 +11,85 @@ if not api_key:
     print("WARNING: GOOGLE_API_KEY not found in env.")
 genai.configure(api_key=api_key)
 
-def download_video(url: str) -> str:
     """
-    Downloads a video from a URL (Instagram, TikTok, YouTube) using yt-dlp.
-    Returns the local file path.
+    Downloads a video using 'Instagram Video & Image Downloader' via RapidAPI.
+    Replaces yt-dlp (blocked on Render).
     """
-    # Create temp dir if not exists (absolute path for production)
+    # 1. Prepare Paths
     base_dir = os.path.dirname(os.path.abspath(__file__))
     temp_dir = os.path.join(base_dir, "temp_videos")
     os.makedirs(temp_dir, exist_ok=True)
     
     timestamp = int(time.time())
-    output_template = os.path.join(temp_dir, f"video_{timestamp}.%(ext)s")
-    
-    ydl_opts = {
-        'outtmpl': output_template,
-        'format': 'best[ext=mp4]/best', # Prefer mp4
-        'quiet': True,
-        'max_filesize': 50 * 1024 * 1024, # Max 50MB to avoid huge uploads
-    }
+    output_path = os.path.join(temp_dir, f"video_{timestamp}.mp4")
 
+    # 2. Call RapidAPI to get Download URL
+    DOWNLOADER_HOST = "instagram-downloader-download-instagram-videos-stories.p.rapidapi.com"
+    API_KEY = os.getenv("RAPIDAPI_KEY") 
+    
+    if not API_KEY:
+        raise ValueError("Falta la RAPIDAPI_KEY en las variables de entorno.")
+
+    print(f"Resolving video URL via RapidAPI ({DOWNLOADER_HOST})...")
+    
     try:
-        with yt_dlp.YoutubeDL(ydl_opts) as ydl:
-            info = ydl.extract_info(url, download=True)
-            filename = ydl.prepare_filename(info)
-            return filename
+        api_url = f"https://{DOWNLOADER_HOST}/index"
+        querystring = {"url":url}
+        headers = {
+            "X-RapidAPI-Key": API_KEY,
+            "X-RapidAPI-Host": DOWNLOADER_HOST
+        }
+        
+        # Call API
+        response = requests.get(api_url, headers=headers, params=querystring)
+        
+        if response.status_code == 403:
+             raise ValueError("⚠️ Falta Suscripción: Debes suscribirte GRATIS a 'Instagram Video & Image Downloader' en RapidAPI para usar esta función.")
+        
+        if response.status_code == 429:
+             raise ValueError("⚠️ Límite Excedido: Se acabaron los créditos de descarga en RapidAPI.")
+
+        if response.status_code != 200:
+             raise ValueError(f"Error Downloader API ({response.status_code}): {response.text}")
+
+        data = response.json()
+        
+        # Extract MP4 URL (Structure varies, usually 'media' or 'video' or 'download_url')
+        # Based on typical scraper logic for this API:
+        download_url = None
+        
+        # Check standard fields
+        if "media" in data and isinstance(data["media"], str):
+             download_url = data["media"]
+        elif "video" in data:
+             download_url = data["video"]
+        elif "download_url" in data:
+             download_url = data["download_url"]
+        # Some return a list
+        elif "media" in data and isinstance(data["media"], list) and len(data["media"]) > 0:
+             download_url = data["media"][0]
+             
+        if not download_url:
+            # Fallback inspection
+            print(f"DEBUG: API Data keys: {data.keys()}")
+            raise ValueError("No se encontró el link de descarga en la respuesta de la API.")
+            
+        print(f"Video URL resolved: {download_url[:50]}...")
+
+        # 3. Download the actual file content
+        print("Downloading video bytes...")
+        with requests.get(download_url, stream=True) as r:
+            r.raise_for_status()
+            with open(output_path, 'wb') as f:
+                for chunk in r.iter_content(chunk_size=8192): 
+                    f.write(chunk)
+                    
+        print(f"Video saved to: {output_path}")
+        return output_path
+
     except Exception as e:
-        print(f"Error downloading video: {e}")
-        raise ValueError(f"No se pudo descargar el video. Verifica el link. Error: {e}")
+        print(f"Error in download_video: {e}")
+        raise ValueError(f"Error de descarga: {str(e)}")
 
 def analyze_video_content(video_path: str) -> Diagnosis:
     """
