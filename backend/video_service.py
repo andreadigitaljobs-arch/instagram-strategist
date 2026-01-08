@@ -35,12 +35,10 @@ def download_video(url: str) -> str:
     print(f"Resolving video URL via RapidAPI ({DOWNLOADER_HOST})...")
     
     try:
-        # endpoint: /ig/post_info/?shortcode={shortcode} OR /ig/post_details/?url={url} depends on api
-        # Research shows this API works with shortcodes often.
-        # But let's check input 'url'.
-        # We need to extract shortcode from URL if API requires it.
-        # However, many have a simple url endpoint.
-        # Let's try to extract shortcode just in case.
+        # ENDPOINT DISCOVERY:
+        # /ig/post_info/ -> 404
+        # /post_info -> 429 (Exists, confirmed by test)
+        # /media_info/ -> 429 (Exists)
         
         # Extract shortcode from URL
         # URL format: https://www.instagram.com/reel/ShortCode/
@@ -48,7 +46,7 @@ def download_video(url: str) -> str:
         if not shortcode:
              shortcode = url.split("/p/")[-1].split("/")[0]
              
-        api_url = f"https://{DOWNLOADER_HOST}/ig/post_info/"
+        api_url = f"https://{DOWNLOADER_HOST}/post_info"
         querystring = {"shortcode": shortcode}
         
         headers = {
@@ -61,6 +59,9 @@ def download_video(url: str) -> str:
         
         if response.status_code == 403:
              raise ValueError("⚠️ Falta Suscripción: Debes suscribirte GRATIS a 'Instagram Scraper 2022' en RapidAPI.")
+        
+        if response.status_code == 429:
+             raise ValueError("⚠️ Plan Agotado/Límite: RapidAPI dice 'Too many requests'. Espera un poco o revisa tu plan.")
         
         if response.status_code == 429:
              raise ValueError("⚠️ Límite Excedido: Se acabaron los créditos de descarga en RapidAPI.")
