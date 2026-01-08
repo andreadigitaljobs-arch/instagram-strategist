@@ -24,8 +24,8 @@ genai.configure(api_key=api_key)
     output_path = os.path.join(temp_dir, f"video_{timestamp}.mp4")
 
     # 2. Call RapidAPI to get Download URL
-    # Using 'Instagram Downloader' by Kk Creation (9.9 Rating)
-    DOWNLOADER_HOST = "instagram-downloader38.p.rapidapi.com"
+    # Using 'Instagram Downloader' by safesite15 (User found this one)
+    DOWNLOADER_HOST = "instagram-downloader-download-instagram-stories-videos4.p.rapidapi.com"
     API_KEY = os.getenv("RAPIDAPI_KEY") 
     
     if not API_KEY:
@@ -34,9 +34,8 @@ genai.configure(api_key=api_key)
     print(f"Resolving video URL via RapidAPI ({DOWNLOADER_HOST})...")
     
     try:
-        # This API uses /url endpoint with 'url' query param
-        # Documentation says: GET /url?url=...
-        api_url = f"https://{DOWNLOADER_HOST}/url"
+        # This API uses /convert endpoint with 'url' query param
+        api_url = f"https://{DOWNLOADER_HOST}/convert"
         querystring = {"url":url}
         headers = {
             "X-RapidAPI-Key": API_KEY,
@@ -47,7 +46,7 @@ genai.configure(api_key=api_key)
         response = requests.get(api_url, headers=headers, params=querystring)
         
         if response.status_code == 403:
-             raise ValueError("⚠️ Falta Suscripción: Debes suscribirte GRATIS a 'Instagram Downloader' (Kk Creation) en RapidAPI.")
+             raise ValueError("⚠️ Falta Suscripción: Debes suscribirte GRATIS a la API que tienes en pantalla ('Instagram Downloader' de safesite15).")
         
         if response.status_code == 429:
              raise ValueError("⚠️ Límite Excedido: Se acabaron los créditos de descarga en RapidAPI.")
@@ -57,24 +56,21 @@ genai.configure(api_key=api_key)
 
         data = response.json()
         
-        # Extract MP4 URL for 'Instagram Video Downloader'
-        # Structure is often list-based or has 'data' field
+        # Extract MP4 URL for 'safesite15'
         download_url = None
         
-        # Common patterns for this specific API family
-        if isinstance(data, list) and len(data) > 0 and "video" in data[0]:
-             download_url = data[0]["video"] # Sometimes returns list of objects
-        elif "data" in data and isinstance(data["data"], list):
-             for item in data["data"]:
-                 if item.get("type") == "video":
-                     download_url = item.get("url")
-                     break
-                 if "video" in item: # Direct video url field
-                     download_url = item["video"]
-                     break
-        elif "video" in data:
-             download_url = data["video"]
-             
+        # Typical structures for these converters:
+        # 1. Direct 'url' field
+        if isinstance(data, dict):
+            if "url" in data and isinstance(data["url"], str):
+                 download_url = data["url"]
+            elif "downloadUrl" in data:
+                 download_url = data["downloadUrl"]
+            elif "media" in data and isinstance(data["media"], list) and len(data["media"]) > 0:
+                 download_url = data["media"][0].get("url")
+            elif "data" in data and isinstance(data["data"], dict) and "url" in data["data"]:
+                 download_url = data["data"]["url"]
+                 
         if not download_url:
             # Fallback inspection
             print(f"DEBUG: API Data keys: {data.keys() if isinstance(data, dict) else 'List'}")
