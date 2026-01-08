@@ -35,6 +35,7 @@ export interface Profile {
     stats: ProfileStats;
     posts: Post[];
     api_credits?: string;
+    error_log?: string;
 }
 
 export interface Diagnosis {

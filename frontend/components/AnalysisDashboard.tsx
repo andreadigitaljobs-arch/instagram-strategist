@@ -159,6 +159,26 @@ export default function AnalysisDashboard() {
             {profile && (
                 <div className="animate-fade-in-up space-y-6">
 
+                    {/* DEBUG ERROR ALERT */}
+                    {profile.error_log && (
+                        <div className="bg-red-50 border-l-4 border-red-500 p-4 rounded shadow-sm">
+                            <div className="flex items-center">
+                                <div className="flex-shrink-0">
+                                    <span className="text-2xl">⚠️</span>
+                                </div>
+                                <div className="ml-3">
+                                    <h3 className="text-sm font-medium text-red-800">Debug Warning (Backend Error)</h3>
+                                    <div className="mt-2 text-sm text-red-700 font-mono bg-red-100 p-2 rounded">
+                                        {profile.error_log}
+                                    </div>
+                                    <p className="mt-2 text-xs text-red-600">
+                                        Por favor, toma una captura de pantalla de este mensaje y enviámela para diagnosticar.
+                                    </p>
+                                </div>
+                            </div>
+                        </div>
+                    )}
+
                     {/* --- Profile Header Card --- */}
                     <div className="bg-white rounded-xl p-6 card-shadow border border-slate-100 flex flex-col md:flex-row items-center md:items-start gap-8">
                         <div className="shrink-0">

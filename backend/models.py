@@ -43,6 +43,7 @@ class Profile(BaseModel):
     stats: ProfileStats
     posts: List[Post]
     api_credits: Optional[str] = None
+    error_log: Optional[str] = None
 
 class Diagnosis(BaseModel):
     summary: str

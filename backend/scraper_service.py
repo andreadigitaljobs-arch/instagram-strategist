@@ -52,6 +52,9 @@ def scrape_profile(handle: str) -> Profile:
     
     print(f"DEBUG: Fetching feed for User ID: {user_id}")
     
+    
+    feed_error_msg = None
+
     try:
         feed_url = f"https://{RAPIDAPI_HOST}/feed"
         # params={"user_id": user_id} was confirmed in tests
@@ -100,10 +103,13 @@ def scrape_profile(handle: str) -> Profile:
                 except Exception as post_e:
                     print(f"DEBUG: Error parsing item: {post_e}")
                     pass
+        else:
+             feed_error_msg = f"Feed Error ({feed_response.status_code}): {feed_response.text}"
+             print(f"DEBUG: {feed_error_msg}")
                     
     except Exception as e:
+        feed_error_msg = f"Feed Exception: {str(e)}"
         print(f"Error fetching feed: {e}")
-        # Continue without posts if feed fails
         pass
 
     # 4. CALCULATE METRICS
@@ -144,5 +150,6 @@ def scrape_profile(handle: str) -> Profile:
         profile_pic_url=data.get("profile_pic_url", ""),
         stats=stats,
         posts=posts,
-        api_credits=remaining
+        api_credits=remaining,
+        error_log=feed_error_invoked if 'feed_error_invoked' in locals() else feed_error_msg
     )
