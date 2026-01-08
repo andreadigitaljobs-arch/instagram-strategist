@@ -1,4 +1,4 @@
-import yt_dlp
+import requests
 import google.generativeai as genai
 import os
 import time
@@ -11,6 +11,7 @@ if not api_key:
     print("WARNING: GOOGLE_API_KEY not found in env.")
 genai.configure(api_key=api_key)
 
+def download_video(url: str) -> str:
     """
     Downloads a video using 'Instagram Video & Image Downloader' via RapidAPI.
     Replaces yt-dlp (blocked on Render).
@@ -24,8 +25,8 @@ genai.configure(api_key=api_key)
     output_path = os.path.join(temp_dir, f"video_{timestamp}.mp4")
 
     # 2. Call RapidAPI to get Download URL
-    # Using 'Instagram Downloader' by safesite15 (User found this one)
-    DOWNLOADER_HOST = "instagram-downloader-download-instagram-stories-videos4.p.rapidapi.com"
+    # Using 'Instagram Scraper 2022' (Stable & Popular)
+    DOWNLOADER_HOST = "instagram-scraper-2022.p.rapidapi.com"
     API_KEY = os.getenv("RAPIDAPI_KEY") 
     
     if not API_KEY:
@@ -34,9 +35,22 @@ genai.configure(api_key=api_key)
     print(f"Resolving video URL via RapidAPI ({DOWNLOADER_HOST})...")
     
     try:
-        # This API uses /convert endpoint with 'url' query param
-        api_url = f"https://{DOWNLOADER_HOST}/convert"
-        querystring = {"url":url}
+        # endpoint: /ig/post_info/?shortcode={shortcode} OR /ig/post_details/?url={url} depends on api
+        # Research shows this API works with shortcodes often.
+        # But let's check input 'url'.
+        # We need to extract shortcode from URL if API requires it.
+        # However, many have a simple url endpoint.
+        # Let's try to extract shortcode just in case.
+        
+        # Extract shortcode from URL
+        # URL format: https://www.instagram.com/reel/ShortCode/
+        shortcode = url.split("/reel/")[-1].split("/")[0]
+        if not shortcode:
+             shortcode = url.split("/p/")[-1].split("/")[0]
+             
+        api_url = f"https://{DOWNLOADER_HOST}/ig/post_info/"
+        querystring = {"shortcode": shortcode}
+        
         headers = {
             "X-RapidAPI-Key": API_KEY,
             "X-RapidAPI-Host": DOWNLOADER_HOST
@@ -46,7 +60,7 @@ genai.configure(api_key=api_key)
         response = requests.get(api_url, headers=headers, params=querystring)
         
         if response.status_code == 403:
-             raise ValueError("⚠️ Falta Suscripción: Debes suscribirte GRATIS a la API que tienes en pantalla ('Instagram Downloader' de safesite15).")
+             raise ValueError("⚠️ Falta Suscripción: Debes suscribirte GRATIS a 'Instagram Scraper 2022' en RapidAPI.")
         
         if response.status_code == 429:
              raise ValueError("⚠️ Límite Excedido: Se acabaron los créditos de descarga en RapidAPI.")
@@ -56,20 +70,19 @@ genai.configure(api_key=api_key)
 
         data = response.json()
         
-        # Extract MP4 URL for 'safesite15'
+        # Extract MP4 URL for 'Instagram Scraper 2022'
         download_url = None
         
-        # Typical structures for these converters:
-        # 1. Direct 'url' field
-        if isinstance(data, dict):
-            if "url" in data and isinstance(data["url"], str):
-                 download_url = data["url"]
-            elif "downloadUrl" in data:
-                 download_url = data["downloadUrl"]
-            elif "media" in data and isinstance(data["media"], list) and len(data["media"]) > 0:
-                 download_url = data["media"][0].get("url")
-            elif "data" in data and isinstance(data["data"], dict) and "url" in data["data"]:
-                 download_url = data["data"]["url"]
+        # Structure often: data -> video_url OR items[0] -> video_versions
+        if "video_url" in data:
+             download_url = data["video_url"]
+        elif "url" in data:
+             download_url = data["url"]
+        elif "data" in data:
+             if "video_url" in data["data"]:
+                 download_url = data["data"]["video_url"]
+             elif "video_versions" in data["data"]:
+                 download_url = data["data"]["video_versions"][0]["url"]
                  
         if not download_url:
             # Fallback inspection
